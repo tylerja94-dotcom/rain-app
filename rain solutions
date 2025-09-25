@@ -1,0 +1,8 @@
+git clone https://github.com/<your-user>/rain-solutions
+cd rain-solutions
+# copy all the files from the canvas into this folder, preserving the same paths
+npm install
+npm run dev   # quick local test
+git add .
+git commit -m "Initial"
+git push
