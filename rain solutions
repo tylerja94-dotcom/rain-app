@@ -6,3 +6,674 @@ npm run dev   # quick local test
 git add .
 git commit -m "Initial"
 git push
+# Repo: rain-solutions (GitHub Pages ready)
+
+Below is a complete, copy‑pasteable project. Create these files with the exact paths.
+
+---
+
+## package.json
+```json
+{
+  "name": "rain-solutions",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && cp dist/index.html dist/404.html || copy dist\\index.html dist\\404.html",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "framer-motion": "^11.0.0",
+    "lucide-react": "^0.441.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.7",
+    "typescript": "^5.4.0",
+    "vite": "^5.0.0"
+  }
+}
+```
+
+---
+
+## vite.config.ts
+```ts
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
+// Change base if you pick a different repo name
+export default defineConfig({
+  plugins: [react()],
+  base: '/rain-solutions/',
+  resolve: {
+    alias: { '@': path.resolve(__dirname, './src') }
+  }
+})
+```
+
+---
+
+## tsconfig.json
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
+  },
+  "include": ["src"]
+}
+```
+
+---
+
+## index.html (root)
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rain Solutions</title>
+    <meta name="theme-color" content="#0ea5e9" />
+    <link rel="manifest" href="./public/manifest.webmanifest" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('./public/service-worker.js').catch(console.error);
+        });
+      }
+    </script>
+  </body>
+</html>
+```
+
+> Note: Vite usually expects `public/` as a static folder copied to the root of the build. We reference it with `./public/...` during dev and it will become `.../public/...` in build under the base path. If you prefer the usual Vite pattern, you can move `manifest.webmanifest` and `service-worker.js` **directly under** `public/` and reference them as `./manifest.webmanifest` and `./service-worker.js`. (Either way works as long as paths are consistent.)
+
+---
+
+## public/manifest.webmanifest
+```json
+{
+  "name": "Rain Solutions",
+  "short_name": "Rain Solutions",
+  "description": "Mobile + desktop app for sizing DIY stormwater controls and cutting runoff.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    { "src": "./icons/rain-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/rain-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/rain-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/rain-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
+```
+
+---
+
+## public/service-worker.js
+```js
+const VERSION = 'v2';
+const CACHE_NAME = `rain-solutions-${VERSION}`;
+
+// Use relative paths so it works at /rain-solutions/ on GitHub Pages
+const ASSETS = [
+  './',
+  './manifest.webmanifest',
+  './icons/rain-192.png',
+  './icons/rain-512.png',
+  './icons/rain-maskable-192.png',
+  './icons/rain-maskable-512.png'
+  // After first deploy, you can add hashed bundle files from dist/assets here for faster offline boot
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.map((k) => k !== CACHE_NAME && caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.mode === 'navigate') {
+    event.respondWith(fetch(req).catch(() => caches.match('./')));
+    return;
+  }
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      const network = fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+        return res;
+      }).catch(() => cached);
+      return cached || network;
+    })
+  );
+});
+```
+
+---
+
+## public/icons/
+```
+public/icons/rain-192.png
+public/icons/rain-512.png
+public/icons/rain-maskable-192.png
+public/icons/rain-maskable-512.png
+public/icons/rain.svg (optional)
+```
+> Use the files I generated earlier (download links are in our chat). Put them here.
+
+---
+
+## tailwind.config.js
+```js
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  theme: { extend: {} },
+  plugins: []
+}
+```
+
+---
+
+## postcss.config.js
+```js
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+```
+
+---
+
+## src/index.css
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+---
+
+## src/main.tsx
+```ts
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+)
+```
+
+---
+
+## src/App.tsx
+```tsx
+import InteractiveStormwaterTool from './InteractiveStormwaterTool'
+export default function App(){
+  return <InteractiveStormwaterTool />
+}
+```
+
+---
+
+## src/InteractiveStormwaterTool.tsx
+```tsx
+// Paste of the latest working component from your canvas (Interactive Home Stormwater Tool – mobile + desktop + PWA friendly)
+// --- BEGIN COMPONENT ---
+import React, { useMemo, useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Download, RefreshCw, Droplets, Calculator, Settings2, Smartphone, Save, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const galPerInchPerSqft = 0.623;
+const roofRunoffCoeff = 0.9;
+
+function toNumber(val: string | number, fallback = 0) {
+  const n = typeof val === "number" ? val : parseFloat(val || "");
+  return Number.isFinite(n) ? n : fallback;
+}
+function fmt(n: number, digits = 0) {
+  if (!Number.isFinite(n)) return "–";
+  return n.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+}
+
+function decide({ slopePct, infiltrationInHr, distanceFromFoundationFt, soilIsClay, hasSpaceSqft }:{
+  slopePct:number; infiltrationInHr:number; distanceFromFoundationFt:number; soilIsClay:boolean; hasSpaceSqft:number;
+}){
+  const messages:string[]=[]; const recs:string[]=[]; const warnings:string[]=[];
+  if(distanceFromFoundationFt<10) warnings.push("Increase discharge distance to ≥ 10 ft from the foundation.");
+  if(slopePct<2) messages.push("Yard slope is <2%. Favor storage (barrels/cistern) and/or a longer splash pad to carry water farther downslope.");
+  if(infiltrationInHr>=2){
+    recs.push("All options viable. Prioritize a micro rain garden; add a barrel for shoulder seasons.");
+  }else if(infiltrationInHr>=0.5){
+    recs.push("Rain garden or dry well are viable with a reliable overflow path; include leaf screen/forebay.");
+  }else if(infiltrationInHr>=0.25){
+    recs.push("Lean on barrels/cistern + dispersion (splash pad or permeable strip). Size garden larger with shallow ponding.");
+  }else{
+    recs.push("Poor infiltration: avoid subsurface storage. Use barrels/cistern and surface dispersion; connect to a permitted storm inlet only if code requires.");
+  }
+  if(soilIsClay) messages.push("Clay soil: slower drawdown; keep rain garden ponding ≤ 6–9 in and increase footprint.");
+  if(hasSpaceSqft<30) messages.push("Very limited space. Use 1–2 barrels in series and a permeable stepping‑stone outlet.");
+  return {messages,recs,warnings};
+}
+
+export default function InteractiveStormwaterTool(){
+  const [roofArea,setRoofArea]=useState<number>(1200);
+  const [downspoutShare,setDownspoutShare]=useState<number>(50);
+  const [designStormIn,setDesignStormIn]=useState<number>(1.0);
+  const [infiltrationInHr,setInfiltrationInHr]=useState<number>(0.5);
+  const [slopePct,setSlopePct]=useState<number>(2.0);
+  const [distanceFt,setDistanceFt]=useState<number>(12);
+  const [hasSpaceSqft,setHasSpaceSqft]=useState<number>(60);
+  const [soilIsClay,setSoilIsClay]=useState<boolean>(false);
+  const [showAssumptions,setShowAssumptions]=useState<boolean>(false);
+  const [activeTab,setActiveTab]=useState<string>('formulas');
+  const [fieldMode,setFieldMode]=useState<boolean>(true);
+
+  type Plan={splash:boolean;barrel:boolean;garden:boolean;drywell:boolean;permeable:boolean;planting:boolean;spreader:boolean;swale:boolean;tree:boolean;compost:boolean};
+  const [plan,setPlan]=useState<Plan>({splash:false,barrel:false,garden:false,drywell:false,permeable:false,planting:false,spreader:false,swale:false,tree:false,compost:false});
+  function totalCostLow(){let t=0; if(plan.splash)t+=60; if(plan.barrel)t+=120; if(plan.garden)t+=250; if(plan.drywell)t+=300; if(plan.permeable)t+=180; if(plan.planting)t+=120; if(plan.spreader)t+=40; if(plan.swale)t+=120; if(plan.tree)t+=80; if(plan.compost)t+=40; return t;}
+  function totalCostHigh(){let t=0; if(plan.splash)t+=140; if(plan.barrel)t+=300; if(plan.garden)t+=600; if(plan.drywell)t+=700; if(plan.permeable)t+=450; if(plan.planting)t+=300; if(plan.spreader)t+=100; if(plan.swale)t+=280; if(plan.tree)t+=180; if(plan.compost)t+=100; return t;}
+
+  type SoilOpt={name:string;hsg:'A'|'B'|'C'|'D';infil:number;clay:boolean};
+  const soilOptions:SoilOpt[]=[
+    {name:'Sand',hsg:'A',infil:2.0,clay:false},
+    {name:'Loamy sand',hsg:'A',infil:1.5,clay:false},
+    {name:'Sandy loam',hsg:'B',infil:1.0,clay:false},
+    {name:'Loam',hsg:'B',infil:0.5,clay:false},
+    {name:'Silt loam',hsg:'C',infil:0.3,clay:false},
+    {name:'Clay loam',hsg:'D',infil:0.25,clay:true},
+    {name:'Silty clay loam',hsg:'D',infil:0.2,clay:true},
+    {name:'Clay',hsg:'D',infil:0.15,clay:true},
+  ];
+  const [soilType,setSoilType]=useState<SoilOpt>(soilOptions[3]);
+  const [autoSoil,setAutoSoil]=useState<boolean>(true);
+  useEffect(()=>{ if(autoSoil){ setInfiltrationInHr(soilType.infil); setSoilIsClay(soilType.clay);} },[soilType,autoSoil]);
+
+  const STORAGE_KEY='stormwater_tool_v1';
+  const saveState=()=>{ const payload={roofArea,downspoutShare,designStormIn,infiltrationInHr,slopePct,distanceFt,hasSpaceSqft,soilIsClay,soilType,autoSoil,plan,fieldMode}; localStorage.setItem(STORAGE_KEY,JSON.stringify(payload)); };
+  const loadState=()=>{ try{ const raw=localStorage.getItem(STORAGE_KEY); if(!raw) return; const d=JSON.parse(raw); setRoofArea(d.roofArea??roofArea); setDownspoutShare(d.downspoutShare??downspoutShare); setDesignStormIn(d.designStormIn??designStormIn); setInfiltrationInHr(d.infiltrationInHr??infiltrationInHr); setSlopePct(d.slopePct??slopePct); setDistanceFt(d.distanceFt??distanceFt); setHasSpaceSqft(d.hasSpaceSqft??hasSpaceSqft); setSoilIsClay(!!d.soilIsClay); if(d.soilType) setSoilType(d.soilType); setAutoSoil(!!d.autoSoil); if(d.plan) setPlan(d.plan); setFieldMode(!!d.fieldMode);}catch{}};
+  useEffect(()=>{ saveState(); },[roofArea,downspoutShare,designStormIn,infiltrationInHr,slopePct,distanceFt,hasSpaceSqft,soilIsClay,soilType,autoSoil,plan,fieldMode]);
+
+  const scrollToSoilFinder=()=>{ const el=document.getElementById('soil-finder'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); };
+
+  const areaToDownspout=useMemo(()=> (roofArea*(downspoutShare/100)),[roofArea,downspoutShare]);
+  const designVolumeGal=useMemo(()=> areaToDownspout*designStormIn*galPerInchPerSqft*roofRunoffCoeff,[areaToDownspout,designStormIn]);
+  const designVolumeCf=useMemo(()=> designVolumeGal/7.48,[designVolumeGal]);
+  const barrelTargetIn=0.33; const barrelSizeGal=useMemo(()=> areaToDownspout*barrelTargetIn*galPerInchPerSqft*roofRunoffCoeff,[areaToDownspout]);
+  const pondingFt=0.75; const tHr=24; const fFtHr=infiltrationInHr/12; const rainGardenArea=useMemo(()=>{ const denom=pondingFt+(fFtHr*tHr); return denom>0? designVolumeCf/denom:0;},[designVolumeCf,fFtHr]);
+  const voidRatio=0.35; const dryWellTrenchCf=useMemo(()=> designVolumeCf/voidRatio,[designVolumeCf]);
+  const decision=useMemo(()=> decide({slopePct,infiltrationInHr,distanceFromFoundationFt:distanceFt,soilIsClay,hasSpaceSqft}),[slopePct,infiltrationInHr,distanceFt,soilIsClay,hasSpaceSqft]);
+
+  const reset=()=>{ setRoofArea(1200); setDownspoutShare(50); setDesignStormIn(1.0); setInfiltrationInHr(0.5); setSlopePct(2.0); setDistanceFt(12); setHasSpaceSqft(60); setSoilIsClay(false); setShowAssumptions(false); setActiveTab('formulas'); setPlan({splash:false,barrel:false,garden:false,drywell:false,permeable:false,planting:false,spreader:false,swale:false,tree:false,compost:false}); };
+
+  const sharePlan=async()=>{ const text=`Stormwater plan\nRoof area: ${roofArea} ft²\nDownspout share: ${downspoutShare}%\nDesign storm: ${designStormIn} in\nSoil: ${soilType.name} (HSG ${soilType.hsg})\nInfiltration: ${infiltrationInHr} in/hr\nSuggested barrel: ${Math.round(barrelSizeGal)} gal\nRain garden area: ${Math.round(rainGardenArea)} ft²\nDry well vol: ${Math.round(dryWellTrenchCf)} ft³`; if((navigator as any).share){ try{ await (navigator as any).share({title:'Stormwater plan',text}); }catch{} } else { alert(text);} };
+
+  return (
+    <div className={`mx-auto max-w-6xl p-4 md:p-8 space-y-6 ${fieldMode ? 'text-[17px] md:text-base' : ''}`}>
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight flex items-center gap-2"><Smartphone className="h-6 w-6"/>Interactive Home Stormwater Tool <span className="text-sm align-top text-muted-foreground">(Beta)</span></h1>
+            <p className="text-muted-foreground mt-1 max-w-3xl">Mobile-first, works offline, and prints cleanly. Use in the field or at your desk.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant={fieldMode ? 'secondary' : 'outline'} onClick={()=> setFieldMode(v=>!v)}>{fieldMode ? 'Field Mode: On' : 'Field Mode: Off'}</Button>
+            <Button variant="outline" onClick={saveState} className="gap-2"><Save className="h-4 w-4"/>Save</Button>
+            <Button variant="outline" onClick={loadState} className="gap-2"><Upload className="h-4 w-4"/>Load</Button>
+            <Button variant="outline" onClick={sharePlan} className="gap-2"><Download className="h-4 w-4"/>Share/Copy</Button>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2"><Settings2 className="h-5 w-5"/>Inputs</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Total roof area (ft²)</Label>
+              <Input inputMode="numeric" type="number" min={100} step={10} value={roofArea} onChange={(e) => setRoofArea(toNumber(e.target.value, 1200))} />
+              <p className="text-xs text-muted-foreground mt-1">Measure footprint or use parcel data.</p>
+            </div>
+            <div>
+              <Label>Share to this downspout (%)</Label>
+              <div className="flex items-center gap-3">
+                <Slider value={[downspoutShare]} min={10} max={100} step={5} onValueChange={(v) => setDownspoutShare(v[0])} className="flex-1" />
+                <Input className="w-24" inputMode="numeric" type="number" value={downspoutShare} onChange={(e) => setDownspoutShare(Math.max(10, Math.min(100, toNumber(e.target.value, 50))))} />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">If unknown, 25–50% is common.</p>
+            </div>
+            <div>
+              <Label>Design storm (in)</Label>
+              <Input inputMode="decimal" type="number" min={0.25} step={0.25} value={designStormIn} onChange={(e) => setDesignStormIn(Math.max(0.25, toNumber(e.target.value, 1)))} />
+              <p className="text-xs text-muted-foreground mt-1">Use 1.0 in baseline; try 0.5–1.5 in sensitivity.</p>
+            </div>
+            <div>
+              <Label>Infiltration rate (in/hr)</Label>
+              <Input inputMode="decimal" type="number" min={0.05} step={0.05} value={infiltrationInHr} onChange={(e) => { setInfiltrationInHr(Math.max(0.05, toNumber(e.target.value, 0.5))); setAutoSoil(false); }} />
+              <p className="text-xs text-muted-foreground mt-1">DIY test: 6" water drop time. Use lower of two trials.</p>
+            </div>
+            <div>
+              <Label>Soil type (Hydrologic Group)</Label>
+              <div className="flex gap-2 items-center">
+                <select className="w-full border rounded-md p-2" value={soilType.name} onChange={(e)=>{ const opt = soilOptions.find(o=>o.name===e.target.value)!; setSoilType(opt);} }>
+                  {soilOptions.map(o=> <option key={o.name} value={o.name}>{o.name} (HSG {o.hsg})</option>)}
+                </select>
+                <Button variant="outline" size="sm" onClick={()=>{ const el=document.getElementById('soil-finder'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }}>Find my soil</Button>
+                <div className="flex items-center gap-2 border rounded-md px-2 py-1">
+                  <Switch checked={autoSoil} onCheckedChange={setAutoSoil} />
+                  <span className="text-xs">Auto‑fill infil</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Pick a soil; keep auto‑fill ON to set a sensible infiltration rate. Turn OFF to use your own test.</p>
+            </div>
+            <div>
+              <Label>Yard slope away from house (%)</Label>
+              <Input inputMode="decimal" type="number" min={0} step={0.1} value={slopePct} onChange={(e) => setSlopePct(Math.max(0, toNumber(e.target.value, 2)))} />
+              <p className="text-xs text-muted-foreground mt-1">Goal ≥ 2% away from foundation.</p>
+            </div>
+            <div>
+              <Label>Discharge distance from foundation (ft)</Label>
+              <Input inputMode="numeric" type="number" min={0} step={1} value={distanceFt} onChange={(e) => setDistanceFt(Math.max(0, toNumber(e.target.value, 12)))} />
+              <p className="text-xs text-muted-foreground mt-1">Keep ≥ 10 ft for safety; verify local code.</p>
+            </div>
+            <div>
+              <Label>Space available for a garden (ft²)</Label>
+              <Input inputMode="numeric" type="number" min={0} step={5} value={hasSpaceSqft} onChange={(e) => setHasSpaceSqft(Math.max(0, toNumber(e.target.value, 60)))} />
+            </div>
+            <div className="flex items-center justify-between rounded-xl border p-3 mt-1">
+              <div>
+                <Label>Soil is predominantly clay?</Label>
+                <p className="text-xs text-muted-foreground">Sets expectations for drawdown time.</p>
+              </div>
+              <Switch checked={soilIsClay} onCheckedChange={setSoilIsClay} />
+            </div>
+            <div className="md:col-span-2 flex gap-2 pt-2">
+              <Button variant="default" className="gap-2"><Calculator className="h-4 w-4"/>Recalculate</Button>
+              <Button type="button" variant="secondary" className="gap-2" onClick={reset}><RefreshCw className="h-4 w-4"/>Reset</Button>
+              <Button type="button" variant="outline" className="gap-2" onClick={() => setShowAssumptions(v => !v)}><Droplets className="h-4 w-4"/>{showAssumptions ? "Hide" : "Show"} assumptions</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2"><CardTitle>Event snapshot</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between"><span>Area to this downspout</span><span className="font-medium">{fmt(areaToDownspout)} ft²</span></div>
+            <div className="flex justify-between"><span>Design storm</span><span className="font-medium">{designStormIn} in</span></div>
+            <div className="flex justify-between"><span>Runoff coefficient (roof)</span><span className="font-medium">{roofRunoffCoeff}</span></div>
+            <div className="flex justify-between"><span>Design volume</span><span className="font-medium">{fmt(designVolumeGal)} gal ({fmt(designVolumeCf,1)} ft³)</span></div>
+            <div className="flex justify-between"><span>Infiltration</span><span className="font-medium">{infiltrationInHr} in/hr</span></div>
+            <div className="flex justify-between"><span>Slope away from house</span><span className="font-medium">{slopePct}%</span></div>
+            <div className="flex justify-between"><span>Discharge distance</span><span className="font-medium">{distanceFt} ft</span></div>
+            <div className="flex justify-between"><span>Soil</span><span className="font-medium">{soilType.name} (HSG {soilType.hsg})</span></div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card id="soil-finder" className="shadow-sm">
+        <CardHeader className="pb-2"><CardTitle>Soil Finder</CardTitle></CardHeader>
+        <CardContent className="prose max-w-none text-sm">
+          <ol className="list-decimal pl-5 space-y-2">
+            <li><b>Online lookup (fastest):</b> <a href="https://websoilsurvey.sc.egov.usda.gov/App/HomePage.htm" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">NRCS Web Soil Survey</a> → Start WSS → draw your lot with the AOI tool → open the Soil Map → note your soil name and <b>Hydrologic Soil Group (A–D)</b>. Pick the closest match in the dropdown above.</li>
+            <li><b>5‑minute jar test:</b> Fill a clear jar 1/3 with soil, top with water + 1 tsp dish soap, shake 1 minute. Sand settles in minutes (bottom), silt next, clay stays cloudy for hours. Choose <i>Sand</i> / <i>Loam</i> / <i>Silt loam</i> / <i>Clay</i> accordingly.</li>
+          </ol>
+          <p className="mt-2">With <b>Auto‑fill</b> on, the tool sets a reasonable infiltration rate for each soil and flags clay behavior for recommendations. You can always turn Auto‑fill off and type your own tested rate.</p>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="shadow-sm"><CardHeader className="pb-2"><CardTitle>Rain barrel / cistern</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>Target capture: <span className="font-medium">~0.33 in</span>.</p>
+            <div className="flex justify-between"><span>Recommended storage</span><span className="font-medium">{fmt(barrelSizeGal,0)} gal</span></div>
+            <p className="text-muted-foreground">2 × 60‑gal barrels or one 100–120 gal tank. Overflow ≥10 ft away.</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm"><CardHeader className="pb-2"><CardTitle>Micro rain garden</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between"><span>Design volume</span><span className="font-medium">{fmt(designVolumeCf,1)} ft³</span></div>
+            <div className="flex justify-between"><span>Estimated footprint</span><span className="font-medium">{fmt(rainGardenArea,0)} ft²</span></div>
+            <p className="text-muted-foreground">Assumes 9 in ponding and 24 hr drawdown.</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm"><CardHeader className="pb-2"><CardTitle>Dry well (stone trench)</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between"><span>Required trench vol</span><span className="font-medium">{fmt(dryWellTrenchCf,1)} ft³</span></div>
+            <p className="text-muted-foreground">Void ratio 0.35; use only if infiltration ≥ 0.5 in/hr and ≥ 10 ft from foundations.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2"><CardTitle>Simple add‑ons you can mix & match</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+          <Card className="border-dashed"><CardHeader className="pb-2"><CardTitle className="text-base">Splash pad / rock apron</CardTitle></CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <li>Length: <b>{slopePct < 2 ? 6 : 3}–6 ft</b></li>
+                <li>Width: ≥ <b>2× downspout</b></li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card className="border-dashed"><CardHeader className="pb-2"><CardTitle className="text-base">Permeable strip</CardTitle></CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <li>2–3 ft × 4–8 ft</li>
+                <li>6–8" open‑graded stone base</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card className="border-dashed"><CardHeader className="pb-2"><CardTitle className="text-base">Native planting strip</CardTitle></CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <li>12–24 in wide</li>
+                <li>Mulch 3–4"; mix compost top 6–8"</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2"><CardTitle>Recommendation</CardTitle></CardHeader>
+        <CardContent className="text-sm space-y-3">
+          {decision.warnings.length>0 && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+              <p className="font-medium mb-1">Fix these first</p>
+              <ul className="list-disc pl-5 space-y-1">{decision.warnings.map((w,i)=><li key={i}>{w}</li>)}</ul>
+            </div>
+          )}
+          <ul className="list-disc pl-5 space-y-1">{decision.recs.map((r,i)=><li key={i}>{r}</li>)}</ul>
+          {decision.messages.length>0 && (
+            <div className="text-muted-foreground"><ul className="list-disc pl-5 space-y-1">{decision.messages.map((m,i)=><li key={i}>{m}</li>)}</ul></div>
+          )}
+        </CardContent>
+      </Card>
+
+      {showAssumptions && (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="formulas">Formulas</TabsTrigger>
+            <TabsTrigger value="setbacks">Setbacks</TabsTrigger>
+            <TabsTrigger value="tips">DIY Tips</TabsTrigger>
+          </TabsList>
+          <TabsContent value="formulas">
+            <Card><CardHeader><CardTitle>Transparent math</CardTitle></CardHeader>
+              <CardContent className="prose max-w-none">
+                <ul>
+                  <li>Volume (gal) = Area<sub>ds</sub>(ft²) × Rain(in) × 0.623 × C<sub>roof</sub> (≈0.9)</li>
+                  <li>ft³ = gallons ÷ 7.48</li>
+                  <li>Garden area (ft²) = V<sub>ft³</sub> ÷ (ponding<sub>ft</sub> + f<sub>ft/hr</sub> × t<sub>hr</sub>)</li>
+                  <li>Dry well trench (ft³) = V<sub>ft³</sub> ÷ 0.35</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="setbacks">
+            <Card><CardHeader><CardTitle>Generic setbacks (verify locally)</CardTitle></CardHeader>
+              <CardContent>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  <li>≥ 10 ft from foundations</li>
+                  <li>Outside septic fields; ≥ 25 ft from wells</li>
+                  <li>Direct overflow away from sidewalks/driveways & neighbors</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="tips">
+            <Card><CardHeader><CardTitle>Quick install tips</CardTitle></CardHeader>
+              <CardContent>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  <li>Barrels: level base, mosquito‑proof lid, winter drain‑down.</li>
+                  <li>Garden: orient overflow notch; mulch 3–6"; plant high/low zones.</li>
+                  <li>Dry well: non‑woven geotextile; cleanout; leaf screen pretreatment.</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+
+      <div className="flex items-center justify-end gap-2 pt-2">
+        <Button variant="outline" className="gap-2" onClick={() => window.print()}><Download className="h-4 w-4"/>Print / Save as PDF</Button>
+      </div>
+
+      <footer className="text-xs text-muted-foreground pt-4">Built for a semester project: low‑cost, high‑impact homeowner guidance. This tool is educational and not a permit.</footer>
+    </div>
+  );
+}
+// --- END COMPONENT ---
+```
+
+---
+
+## Add shadcn/ui components
+Run these to generate the UI components used by the tool:
+```
+npm create vite@latest . -- --template react-ts # if not already
+npm install
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+npm install -D shadcn-ui@latest
+npx shadcn-ui init
+npx shadcn-ui add button card input label slider switch tabs
+```
+
+This creates `src/components/ui/*`. The imports in the component point there via the `@` alias.
+
+---
+
+## .github/workflows/pages.yml
+```yaml
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci || npm install
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+---
+
+## README.md
+```md
+# Rain Solutions
+Installable PWA for mobile + desktop. Sizes DIY stormwater controls from simple yard inputs.
+
+## Dev
+```bash
+npm install
+npm run dev
+```
+
+## Build
+```bash
+npm run build
+```
+
+## Deploy to GitHub Pages
+- Push to `main`. GitHub Action builds and deploys to Pages.
+- App URL: https://<your-user>.github.io/rain-solutions/
+
+## Icons
+Place PNGs in `public/icons/`:
+- rain-192.png, rain-512.png, rain-maskable-192.png, rain-maskable-512.png
